@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from scipy.integrate import solve_ivp
+from fractions import Fraction
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, ttk, messagebox
 
 def nanodron_equations(t, state, alpha, beta, gamma):
     x, y, z = state
@@ -12,7 +14,7 @@ def nanodron_equations(t, state, alpha, beta, gamma):
     dzdt = x * y - gamma * z
     return [dxdt, dydt, dzdt]
 
-def simulate_and_animate(alpha, beta, gamma, initial_conditions, t_final):
+def simulate_and_animate(alpha, beta, gamma, initial_conditions, t_final, canvas, ax):
     t_span = (0, t_final)
     t_eval = np.linspace(0, t_final, 1000)
     
@@ -22,8 +24,7 @@ def simulate_and_animate(alpha, beta, gamma, initial_conditions, t_final):
     y = solution.y[1]
     z = solution.y[2]
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax.clear()
     line, = ax.plot([], [], [], lw=2)
     point, = ax.plot([], [], [], 'o')
 
@@ -42,26 +43,89 @@ def simulate_and_animate(alpha, beta, gamma, initial_conditions, t_final):
         point.set_3d_properties(z[num-1:num])
         return line, point
     
-    ani = FuncAnimation(fig, update, len(t_eval), fargs=[x, y, z, line, point], interval=10, blit=False)
+    ani = FuncAnimation(ax.figure, update, len(t_eval), fargs=[x, y, z, line, point], interval=10, blit=False)
     
-    plt.show()
+    canvas.draw()
 
-def get_input():
-    root = tk.Tk()
-    root.withdraw()
+def start_simulation():
+    entries = [alpha_entry, beta_entry, gamma_entry, x0_entry, y0_entry, z0_entry, t_final_entry]
+    for entry in entries:
+        if not entry.get():
+            messagebox.showerror("Input Error", "All fields must be filled out")
+            return
     
-    alpha = float(simpledialog.askstring("Input", "Enter the value of alpha:", parent=root))
-    beta = float(simpledialog.askstring("Input", "Enter the value of beta:", parent=root))
-    gamma = float(simpledialog.askstring("Input", "Enter the value of gamma:", parent=root))
+    try:
+        alpha = float(Fraction(alpha_entry.get()))
+        beta = float(Fraction(beta_entry.get()))
+        gamma = float(Fraction(gamma_entry.get()))
+        x0 = float(Fraction(x0_entry.get()))
+        y0 = float(Fraction(y0_entry.get()))
+        z0 = float(Fraction(z0_entry.get()))
+        t_final = float(Fraction(t_final_entry.get()))
+    except ValueError:
+        messagebox.showerror("Input Error", "Invalid input. Please enter valid numbers or fractions.")
+        return
     
-    x0 = float(simpledialog.askstring("Input", "Enter the initial x coordinate:", parent=root))
-    y0 = float(simpledialog.askstring("Input", "Enter the initial y coordinate:", parent=root))
-    z0 = float(simpledialog.askstring("Input", "Enter the initial z coordinate:", parent=root))
-    
-    t_final = float(simpledialog.askstring("Input", "Enter the simulation time (seconds):", parent=root))
-    
-    return alpha, beta, gamma, [x0, y0, z0], t_final
+    initial_conditions = [x0, y0, z0]
+    simulate_and_animate(alpha, beta, gamma, initial_conditions, t_final, canvas, ax)
 
-if __name__ == "__main__":
-    alpha, beta, gamma, initial_conditions, t_final = get_input()
-    simulate_and_animate(alpha, beta, gamma, initial_conditions, t_final)
+def validate_float_or_fraction(P):
+    if P == "" or P == "-" or P == "/":
+        return True
+    if P.count('-') > 1 or P.count('/') > 1:
+        return False
+    if '-' in P and P.index('-') != 0:
+        return False
+    if '/' in P and P.index('/') == 0:
+        return False
+    try:
+        float(Fraction(P))
+        return True
+    except ValueError:
+        return False
+
+root = tk.Tk()
+root.title("NanoDron Simulation")
+
+frame = ttk.Frame(root, padding="10")
+frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+vcmd = (root.register(validate_float_or_fraction), '%P')
+
+ttk.Label(frame, text="Alpha:").grid(row=0, column=0, sticky=tk.W)
+alpha_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+alpha_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
+
+ttk.Label(frame, text="Beta:").grid(row=1, column=0, sticky=tk.W)
+beta_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+beta_entry.grid(row=1, column=1, sticky=(tk.W, tk.E))
+
+ttk.Label(frame, text="Gamma:").grid(row=2, column=0, sticky=tk.W)
+gamma_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+gamma_entry.grid(row=2, column=1, sticky=(tk.W, tk.E))
+
+ttk.Label(frame, text="Initial X:").grid(row=3, column=0, sticky=tk.W)
+x0_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+x0_entry.grid(row=3, column=1, sticky=(tk.W, tk.E))
+
+ttk.Label(frame, text="Initial Y:").grid(row=4, column=0, sticky=tk.W)
+y0_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+y0_entry.grid(row=4, column=1, sticky=(tk.W, tk.E))
+
+ttk.Label(frame, text="Initial Z:").grid(row=5, column=0, sticky=tk.W)
+z0_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+z0_entry.grid(row=5, column=1, sticky=(tk.W, tk.E))
+
+ttk.Label(frame, text="Simulation Time:").grid(row=6, column=0, sticky=tk.W)
+t_final_entry = ttk.Entry(frame, validate="key", validatecommand=vcmd)
+t_final_entry.grid(row=6, column=1, sticky=(tk.W, tk.E))
+
+start_button = ttk.Button(frame, text="Start Simulation", command=start_simulation)
+start_button.grid(row=7, column=0, columnspan=2, pady=10)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+root.mainloop()
