@@ -1,262 +1,205 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.animation import FuncAnimation
+import os
+import signal
 import tkinter as tk
-from tkinter import simpledialog, ttk, messagebox
+from tkinter import messagebox
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
 
-# Definir las ecuaciones de movimiento
-def dx_dt(x, y, alpha):
-    print('x', x)
-    print('y', y)
-    print('alpha', alpha)    
-    result = alpha * (y - x)
-    print('alpha', result)
-    return result
+# Crear ventana de tkinter con los valores de entrada
+def simulador():
+    # Variables globales
+    global entrada_alpha, entrada_beta, entrada_gamma, entrada_x_1, entrada_y_1, entrada_z_1, entrada_x_2, entrada_y_2, entrada_z_2, entrada_tiempo, entrada_paso, canvas, ventana
 
-def dy_dt(y, z, beta):
-    print('y', y)
-    print('z', z)
-    print('beta', beta)
-    # Calcular z * (beta - z)
-    try:
-        z_term = z * (beta - z)
-    except OverflowError:
-        print('Overflow in z * (beta - z)')
-        return np.inf if z > 0 else -np.inf
+    # Crear la ventana
+    ventana = tk.Tk()
+    ventana.title("Simulación de NanoDron")
+
+    # Crear un frame para los valores de entrada
+    marco_izquierdo = tk.Frame(ventana)
+    marco_izquierdo.pack(side=tk.LEFT)
     
-    print('z_term:', z_term)
+    # Constantes positivas
+    marco_constantes = tk.LabelFrame(marco_izquierdo, text="Constantes positivas")
+    marco_constantes.grid(row= 0, column=0, padx=20, pady=10)  
+    tk.Label(marco_constantes, text="Alpha").grid(row=0, column=0, padx=10, pady=5)
+    entrada_alpha = tk.Entry(marco_constantes)
+    entrada_alpha.grid(row=1, column=0, padx=10, pady=5)
+    tk.Label(marco_constantes, text="Beta").grid(row=0, column=1, padx=10, pady=5)
+    entrada_beta = tk.Entry(marco_constantes)
+    entrada_beta.grid(row=1, column=1, padx=10, pady=5)
+    tk.Label(marco_constantes, text="Gamma").grid(row=0, column=2, padx=10, pady=5)
+    entrada_gamma = tk.Entry(marco_constantes)
+    entrada_gamma.grid(row=1, column=2, padx=10, pady=5)
+
+    # Puntos iniciales
+    # Punto 1
+    marco_punto1 = tk.LabelFrame(marco_izquierdo, text="Punto 1")
+    marco_punto1.grid(row= 1, column=0, padx=20, pady=10)
+    tk.Label(marco_punto1, text="X1").grid(row=0, column=0, padx=10, pady=5)
+    entrada_x_1 = tk.Entry(marco_punto1)
+    entrada_x_1.grid(row=1, column=0, padx=10, pady=5)
+    tk.Label(marco_punto1, text="Y1").grid(row=0, column=1, padx=10, pady=5)
+    entrada_y_1 = tk.Entry(marco_punto1)
+    entrada_y_1.grid(row=1, column=1, padx=10, pady=5)
+    tk.Label(marco_punto1, text="Z1").grid(row=0, column=2, padx=10, pady=5)
+    entrada_z_1 = tk.Entry(marco_punto1)
+    entrada_z_1.grid(row=1, column=2, padx=10, pady=5)
+
+    # Punto 2
+    marco_punto2 = tk.LabelFrame(marco_izquierdo, text="Punto 2")
+    marco_punto2.grid(row= 2, column=0, padx=20, pady=10)
+    tk.Label(marco_punto2, text="X2").grid(row=0, column=0, padx=10, pady=5)
+    entrada_x_2 = tk.Entry(marco_punto2)
+    entrada_x_2.grid(row=1, column=0, padx=10, pady=5)
+    tk.Label(marco_punto2, text="Y2").grid(row=0, column=1, padx=10, pady=5)
+    entrada_y_2 = tk.Entry(marco_punto2)
+    entrada_y_2.grid(row=1, column=1, padx=10, pady=5)
+    tk.Label(marco_punto2, text="Z2").grid(row=0, column=2, padx=10, pady=5)
+    entrada_z_2 = tk.Entry(marco_punto2)
+    entrada_z_2.grid(row=1, column=2, padx=10, pady=5)
+
+    # Tiempo de simulación
+    marco_tiempo = tk.LabelFrame(marco_izquierdo)
+    marco_tiempo.grid(row= 3, column=0, padx=20, pady=10)
+    tk.Label(marco_tiempo, text="Tiempo de simulación (s)").grid(row=0, column=0, padx=10, pady=5)
+    entrada_tiempo = tk.Entry(marco_tiempo)
+    entrada_tiempo.grid(row=1, column=0, padx=10, pady=5)
+    tk.Label(marco_tiempo, text="Tamaño del paso").grid(row=0, column=1, padx=10, pady=5)
+    entrada_paso = tk.Entry(marco_tiempo)
+    entrada_paso.grid(row=1, column=1, padx=10, pady=5)
+
+    # Botón de simulación
+    boton_simulacion = tk.Button(marco_izquierdo, text="Iniciar simulación", command=simular)
+    boton_simulacion.grid(row=4, column=0, padx=20, pady=10)
+
+    # Crear un frame para el gráfico de simulación
+    marco_derecho = tk.Frame(ventana)
+    marco_derecho.pack(side=tk.RIGHT)
+    marco_grafico = tk.LabelFrame(marco_derecho, text="Gráfico de simulación")
+    marco_grafico.grid(row= 2, column=0, padx=20, pady=10)
     
-    # Calcular el resultado final
-    result = z_term - y
-    print('result:', result)
-    return result
+    # Crear un canvas para dibujar el gráfico
+    canvas = tk.Canvas(marco_grafico, width=400, height=410, bg="white")
+    canvas.pack()
 
-def dz_dt(x, y, z, gamma):    
-    print('x', x)
-    print('y', y)
-    print('z', z)
-    print('gamma', gamma)    
-    result = x * y - gamma * z
-    print('result_gamma', result)
-    return result
+    ventana.protocol("WM_DELETE_WINDOW", on_closing)
 
-# Definir el método de Euler
-def euler_method(x0, y0, z0, dt, num_steps, alpha, beta, gamma):
-    x = np.zeros(num_steps)
-    y = np.zeros(num_steps)
-    z = np.zeros(num_steps)
+    ventana.mainloop()
 
-    x[0] = x0
-    y[0] = y0
-    z[0] = z0
+def dxdt(x, y, alpha):
+    return alpha * (y - x)
 
-    for i in range(1, num_steps):
-        x[i] = x[i-1] + dt * dx_dt(x[i-1], y[i-1], alpha)
-        y[i] = y[i-1] + dt * dy_dt(y[i-1], z[i-1], beta)
-        z[i] = z[i-1] + dt * dz_dt(x[i-1], y[i-1], z[i-1], gamma)
+def dydt(x, y, z, beta):
+    return (x * (beta - z)) - y
 
-        # Control de estabilidad
-        if np.isinf(x[i]) or np.isinf(y[i]) or np.isinf(z[i]) or np.isnan(x[i]) or np.isnan(y[i]) or np.isnan(z[i]):
-            print(f"Desbordamiento numérico en el paso {i}")
-            break
+def dzdt(x, y, z, gamma):
+    return x * y - gamma * z
 
-        # Limitar los valores a un rango específico
-        if abs(x[i]) > 1.5 or abs(y[i]) > 1.5 or abs(z[i]) > 1.5:
-            print(f"Valor fuera de rango en el paso {i}")
-            break
+def metodo_euler(x, y, z, alpha, beta, gamma, paso):
+    x_nuevo = x + dxdt(x, y, alpha) * paso
+    y_nuevo = y + dydt(x, y, z, beta) * paso
+    z_nuevo = z + dzdt(x, y, z, gamma) * paso
+    return x_nuevo, y_nuevo, z_nuevo
 
-    return x, y, z
+def actualizar_grafico(num):
+    trayectoria1.set_data(x1[:num], y1[:num])
+    trayectoria1.set_3d_properties(z1[:num])
+    punto1.set_data(x1[num-1:num], y1[num-1:num])
+    punto1.set_3d_properties(z1[num-1:num])
+    trayectoria2.set_data(x2[:num], y2[:num])
+    trayectoria2.set_3d_properties(z2[:num])
+    punto2.set_data(x2[num-1:num], y2[num-1:num])
+    punto2.set_3d_properties(z2[num-1:num])
 
-# Variable global para la animación
-ani = None
+    return trayectoria1, punto1, trayectoria2, punto2,
 
-# Función para iniciar la simulación
-def start_simulation():
+# Función para deshabilitar todos los widgets de entrada
+def disable_inputs(ventana):
+    for widget in ventana.winfo_children():
+        if isinstance(widget, (tk.Entry, tk.Button)):
+            widget.config(state='disabled')
 
-    # Validar que todos los campos estén llenos
-    entries = [entry_alpha, entry_beta, entry_gamma, entry_x0_1, entry_y0_1, entry_z0_1, entry_x0_2, entry_y0_2, entry_z0_2, entry_time]
+def simular():
+    # Variables globales
+    global trayectoria1, punto1, trayectoria2, punto2, x1, y1, z1, x2, y2, z2, animacion
+
+    # Valores de entrada
+    entries = [entrada_alpha, entrada_beta, entrada_gamma, entrada_x_1, entrada_y_1, entrada_z_1, entrada_x_2, entrada_y_2, entrada_z_2, entrada_tiempo, entrada_paso]
     for entry in entries:
         if not entry.get():
-            messagebox.showerror("Input Error", "All fields must be filled out")
+            messagebox.showerror("Error", "Todos los campos son requeridos")
             return
-
-    global ani
-
-    # Detener la animación anterior si existe
-    if ani is not None:
-        ani.event_source.stop()
-        ani = None
-
-    # Obtener los valores ingresados por el usuario
-    try:
-        alpha = float(entry_alpha.get())
-        beta = float(entry_beta.get())
-        gamma = float(entry_gamma.get())
-        x0_1 = float(entry_x0_1.get())
-        y0_1 = float(entry_y0_1.get())
-        z0_1 = float(entry_z0_1.get())
-        x0_2 = float(entry_x0_2.get())
-        y0_2 = float(entry_y0_2.get())
-        z0_2 = float(entry_z0_2.get())
-        time = float(entry_time.get())
-    except ValueError:
-        messagebox.showerror("Input Error", "Invalid input. Please enter valid numbers or fractions.")
-        return
     
-    # Tamaño del paso de integración y número de pasos
-    dt = 0.001
-    num_steps = int(time / dt)
+    # Obtener los valores de entrada
+    alpha = float(entrada_alpha.get())
+    beta = float(entrada_beta.get())
+    gamma = float(entrada_gamma.get())
+    x01 = float(entrada_x_1.get())
+    y01 = float(entrada_y_1.get())
+    z01 = float(entrada_z_1.get())
+    x02 = float(entrada_x_2.get())
+    y02 = float(entrada_y_2.get())
+    z02 = float(entrada_z_2.get())
+    tiempo = float(entrada_tiempo.get())
+    paso = float(entrada_paso.get())
 
-    # Resolver el sistema de ecuaciones utilizando el método de Euler para ambos puntos iniciales
-    x1, y1, z1 = euler_method(x0_1, y0_1, z0_1, dt, num_steps, alpha, beta, gamma)
-    x2, y2, z2 = euler_method(x0_2, y0_2, z0_2, dt, num_steps, alpha, beta, gamma)
+    # Numero de pasos
+    numero_pasos = int(tiempo / paso)
 
-    # Determinar si min(x1) o min(x2) es menor
+    # Incializar las coordenadas
+    x1 = np.zeros(numero_pasos)
+    y1 = np.zeros(numero_pasos)
+    z1 = np.zeros(numero_pasos)
+    x2 = np.zeros(numero_pasos)
+    y2 = np.zeros(numero_pasos)
+    z2 = np.zeros(numero_pasos)    
+    x1[0], y1[0], z1[0] = x01, y01, z01
+    x2[0], y2[0], z2[0] = x02, y02, z02
+
+    for i in range(1, numero_pasos):
+       x1[i], y1[i], z1[i] = metodo_euler(x1[i-1], y1[i-1], z1[i-1], alpha, beta, gamma, paso)
+       x2[i], y2[i], z2[i] = metodo_euler(x2[i-1], y2[i-1], z2[i-1], alpha, beta, gamma, paso)
+    
+    # Calcular los puntos minimos y maximos para ajustar el gráfico en el canvas
     min_x = min(min(x1), min(x2))
     min_y = min(min(y1), min(y2))
     min_z = min(min(z1), min(z2))
     max_x = max(max(x1), max(x2))
     max_y = max(max(y1), max(y2))
     max_z = max(max(z1), max(z2))
+    
+    # Crear plt figure 3d y colocarlo en el canvas
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    ax.set_xlim(max_x, min_x)
+    ax.set_ylim(max_y, min_y)
+    ax.set_zlim(min_z, max_z)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    ax.view_init(elev=15, azim=35)
+    
+    # Dibujar la trayectoria y puntos
+    trayectoria1, = ax.plot([], [], [], label='Trayectoria del cuerpo 1', color='blue')
+    punto1, = ax.plot([], [], [], 'o', label='Cuerpo 1', color='red')
+    trayectoria2, = ax.plot([], [], [], label='Trayectoria del cuerpo 2', color='green')
+    punto2, = ax.plot([], [], [], 'o', label='Cuerpo 2', color='orange')
 
-    # Limpiar el gráfico
-    ax = fig.add_subplot(111, projection='3d')
-    ax.clear()
-    ax.set_xlim([min_x, max_x])
-    ax.set_ylim([min_y, max_y])
-    ax.set_zlim([min_z, max_z])
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    # Leyenda
+    ax.legend(loc='best', fontsize='small', ncol=2)
 
-    # Actualizar el gráfico con los nuevos datos
-    def update(num):
-        line1.set_data(x1[:num], y1[:num])
-        line1.set_3d_properties(z1[:num])
-        point1.set_data(x1[num-1:num], y1[num-1:num])
-        point1.set_3d_properties(z1[num-1:num])
-        line2.set_data(x2[:num], y2[:num])
-        line2.set_3d_properties(z2[:num])
-        point2.set_data(x2[num-1:num], y2[num-1:num])
-        point2.set_3d_properties(z2[num-1:num])
-        time_label.config(text=f"Time: {num * dt:.2f} s")
-        return line1, point1, line2, point2
+    # Animacion
+    animacion = FuncAnimation(fig, actualizar_grafico, frames=numero_pasos, interval=paso*1000, blit=True)
+    
+    # Integrar la figura de Matplotlib en el canvas de Tkinter
+    canvas_figura = FigureCanvasTkAgg(fig, master=canvas)
+    canvas_figura.draw()
+    canvas_figura.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH) 
 
-    ani = FuncAnimation(fig, update, frames=num_steps, interval=dt*1000, blit=True)
-    canvas.draw()
+def on_closing():
+    os.kill(os.getpid(), signal.SIGTERM)
 
-# Función para detener la simulación
-def stop_simulation():
-    global ani
-    if ani is not None:
-        ani.event_source.stop()
-        ani = None
-
-# Función para validar que un valor sea un número flotante
-def validate_float(P):
-    if P == "" or P == "-":
-        return True
-    try:
-        float(P)
-        return True
-    except ValueError:
-        return False
-
-# Crear la ventana de tkinter
-root = tk.Tk()
-root.title("NanoDron Simulation")
-
-frame = ttk.Frame(root, padding="10")
-frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-# Configurar el espacio entre columnas en el frame
-frame.columnconfigure(0, pad=30)
-frame.columnconfigure(1, pad=30)
-frame.columnconfigure(2, pad=30)
-frame.columnconfigure(3, pad=30)
-
-# Validar los valores de entrada
-vcmd = (root.register(validate_float), '%P')
-
-# Crear los frame para los valores de entrada
-ttk.Label(frame, text="Alpha:").grid(row=0, column=0, sticky=tk.E)
-entry_alpha = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_alpha.grid(row=0, column=1, sticky=tk.W)
-
-ttk.Label(frame, text="Beta:").grid(row=1, column=0, sticky=tk.E)
-entry_beta = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_beta.grid(row=1, column=1, sticky=tk.W)
-
-ttk.Label(frame, text="Gamma:").grid(row=0, column=2, sticky=tk.E)
-entry_gamma = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_gamma.grid(row=0, column=3, sticky=tk.W)
-
-ttk.Label(frame, text="Simulation Time (seconds):").grid(row=1, column=2, sticky=tk.E)
-entry_time = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_time.grid(row=1, column=3, sticky=tk.W)
-
-ttk.Label(frame, text="").grid(row=2, column=0, sticky=tk.E)
-
-ttk.Label(frame, text="Initial X1:").grid(row=3, column=0, sticky=tk.E)
-entry_x0_1 = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_x0_1.grid(row=3, column=1, sticky=tk.W)
-
-ttk.Label(frame, text="Initial Y1:").grid(row=4, column=0, sticky=tk.E)
-entry_y0_1 = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_y0_1.grid(row=4, column=1, sticky=tk.W)
-
-ttk.Label(frame, text="Initial Z1:").grid(row=5, column=0, sticky=tk.E)
-entry_z0_1 = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_z0_1.grid(row=5, column=1, sticky=tk.W)
-
-ttk.Label(frame, text="Initial X2:").grid(row=3, column=2, sticky=tk.E)
-entry_x0_2 = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_x0_2.grid(row=3, column=3, sticky=tk.W)
-
-ttk.Label(frame, text="Initial Y2:").grid(row=4, column=2, sticky=tk.E)
-entry_y0_2 = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_y0_2.grid(row=4, column=3, sticky=tk.W)
-
-ttk.Label(frame, text="Initial Z2:").grid(row=5, column=2, sticky=tk.E)
-entry_z0_2 = ttk.Entry(frame, validate="key", validatecommand=vcmd)
-entry_z0_2.grid(row=5, column=3, sticky=tk.W)
-
-# Crear los botones de inicio y parada de la simulación
-start_button = ttk.Button(frame, text="Start Simulation", command=start_simulation)
-start_button.grid(row=6, column=1, sticky=tk.E, pady=10, padx=20)
-
-stop_button = ttk.Button(frame, text="Stop Simulation", command=stop_simulation)
-stop_button.grid(row=6, column=2, sticky=tk.W, pady=10, padx=20)
-
-# Crear y colocar la etiqueta del cronómetro
-time_label = ttk.Label(frame, text="Time: 0.00 s")
-time_label.grid(row=7, column=0, columnspan=2, pady=10)
-
-# Crear el gráfico inicial
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.set_xlim([1.5, -0.5])
-ax.set_ylim([1.5, -0.5])
-ax.set_zlim([-0.5, 1.5])
-ax.set_xticks(np.arange(-0.5, 1.6, 0.5))
-ax.set_yticks(np.arange(-0.5, 1.6, 0.5))
-ax.set_zticks(np.arange(-0.5, 1.6, 0.5))
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-ax.view_init(elev=15, azim=35)
-line1, = ax.plot([], [], [], label='Trayectoria del cuerpo 1', color='blue')
-point1, = ax.plot([], [], [], 'ro', label='Cuerpo 1')
-line2, = ax.plot([], [], [], label='Trayectoria del cuerpo 2', color='orange')
-point2, = ax.plot([], [], [], 'go', label='Cuerpo 2')
-ax.legend(loc='best', fontsize='small', ncol=2)
-
-# Mostrar el gráfico en la ventana de tkinter
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.draw()
-canvas.get_tk_widget().grid(row=1, column=0, columnspan=2)
-
-# Iniciar el bucle principal de tkinter
-root.mainloop()
+# Llamar a la función para dibujar la ventana
+simulador()
