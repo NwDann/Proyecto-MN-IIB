@@ -9,6 +9,17 @@ import numpy as np
 
 # Crear ventana de tkinter con los valores de entrada
 def simulador():
+    """
+    Crea la interfaz gráfica de la simulación del NanoDron utilizando Tkinter.
+
+    La interfaz permite ingresar los valores de las constantes (alpha, beta, gamma),
+    las coordenadas iniciales de dos puntos en el espacio (X1, Y1, Z1 y X2, Y2, Z2),
+    y los parámetros de tiempo de simulación y tamaño del paso.
+
+    La interfaz también incluye un gráfico 3D que muestra la trayectoria simulada
+    de los dos puntos en el espacio a lo largo del tiempo.
+    """
+    
     # Variables globales
     global entrada_alpha, entrada_beta, entrada_gamma, entrada_x_1, entrada_y_1 
     global entrada_z_1, entrada_x_2, entrada_y_2, entrada_z_2, entrada_tiempo
@@ -101,6 +112,19 @@ def simulador():
     ventana.mainloop()
 
 def validar_entradas(value, signal):
+    """
+    Valida que los valores ingresados en las entradas sean números flotantes positivos
+    o negativos, según el tipo de señal proporcionado.
+
+    Args:
+        value (str): El valor ingresado en la entrada.
+        signal (str): Señal que indica si el valor debe ser un flotante positivo ('p')
+                      o un flotante positivo o negativo ('n').
+
+    Returns:
+        bool: True si el valor es válido, False en caso contrario.
+    """
+    
     # Flotante positivo
     if signal == 'p':
         if value == "":
@@ -116,24 +140,81 @@ def validar_entradas(value, signal):
         return False
 
 def dxdt(x, y, alpha):
+    """
+    Calcula la derivada de x con respecto al tiempo según la ecuación dx/dt = alpha * (y - x).
+
+    Args:
+        x (float): Valor de x en un tiempo dado.
+        y (float): Valor de y en un tiempo dado.
+        alpha (float): Constante que determina la tasa de cambio.
+
+    Returns:
+        float: Valor de la derivada dx/dt.
+    """
+    
     result = alpha * (y - x)
     if not np.isfinite(result):
         result = np.clip(result, -1e308, 1e308)  # Limitar a un rango finito
     return result
 
 def dydt(x, y, z, beta):
+    """
+    Calcula la derivada de y con respecto al tiempo según la ecuación dy/dt = beta * (z - y).
+
+    Args:
+        y (float): Valor de y en un tiempo dado.
+        z (float): Valor de z en un tiempo dado.
+        beta (float): Constante que determina la tasa de cambio.
+
+    Returns:
+        float: Valor de la derivada dy/dt.
+    """
+    
     result = (x * (beta - z)) - y
     if not np.isfinite(result):
         result = np.clip(result, -1e308, 1e308)  # Limitar a un rango finito
     return result
 
 def dzdt(x, y, z, gamma):
+    """
+    Calcula la derivada de z con respecto al tiempo según la ecuación dz/dt = gamma * (x - z).
+
+    Args:
+        z (float): Valor de z en un tiempo dado.
+        x (float): Valor de x en un tiempo dado.
+        gamma (float): Constante que determina la tasa de cambio.
+
+    Returns:
+        float: Valor de la derivada dz/dt.
+    """
+    
     result = x * y - gamma * z
     if not np.isfinite(result):
         result = np.clip(result, -1e308, 1e308)  # Limitar a un rango finito
     return result
 
 def metodo_euler(x, y, z, alpha, beta, gamma, numero_paso, paso):
+    """
+    Aplica el método de Euler para calcular las nuevas coordenadas (x, y, z) de un punto en el espacio.
+
+    Utiliza las ecuaciones diferenciales definidas para dx/dt, dy/dt y dz/dt, con las constantes alpha, 
+    beta y gamma para determinar la tasa de cambio.
+
+    Args:
+        x (float): Coordenada actual en el eje X.
+        y (float): Coordenada actual en el eje Y.
+        z (float): Coordenada actual en el eje Z.
+        alpha (float): Constante que afecta la tasa de cambio de x.
+        beta (float): Constante que afecta la tasa de cambio de y.
+        gamma (float): Constante que afecta la tasa de cambio de z.
+        numero_paso (int): Número del paso actual en la simulación.
+        paso (float): Tamaño del paso de tiempo en la simulación.
+
+    Returns:
+        tuple: Nuevas coordenadas (x_nuevo, y_nuevo, z_nuevo) después de aplicar el método de Euler,
+        o None si ocurre un desbordamiento numérico.
+    """
+    
     x_nuevo = x + dxdt(x, y, alpha) * paso
     y_nuevo = y + dydt(x, y, z, beta) * paso
     z_nuevo = z + dzdt(x, y, z, gamma) * paso
@@ -149,6 +230,20 @@ def metodo_euler(x, y, z, alpha, beta, gamma, numero_paso, paso):
     return x_nuevo, y_nuevo, z_nuevo
 
 def actualizar_grafico(num):
+    """
+    Actualiza el gráfico 3D con las trayectorias y posiciones actuales de los puntos en cada frame de la simulación.
+
+    Mueve las trayectorias y los puntos en el gráfico para representar el progreso de la simulación. También actualiza
+    la etiqueta que muestra el tiempo transcurrido y controla el estado de los botones en la interfaz una vez que la 
+    simulación termina.
+
+    Args:
+        num (int): El número actual del frame en la simulación.
+
+    Returns:
+        tuple: Los objetos de Matplotlib (trayectoria1, punto1, trayectoria2, punto2) actualizados para el frame actual.
+    """
+    
     trayectoria1.set_data(x1[:num], y1[:num])
     trayectoria1.set_3d_properties(z1[:num])
     punto1.set_data(x1[num-1:num], y1[num-1:num])
@@ -169,6 +264,19 @@ def actualizar_grafico(num):
 
 # Función para habilitar o deshabilitar todos los widgets de entrada
 def habilitar_deshabilitar_entradas(action):
+    """
+    Habilita o deshabilita todos los campos de entrada (Entry) en los marcos de la interfaz gráfica.
+
+    Esta función recorre todos los widgets en los marcos `marco_constantes`, `marco_punto1`, `marco_punto2` 
+    y `marco_tiempo`, y cambia el estado de los campos de entrada (Entry) según el valor del parámetro `action`.
+    Esto permite desactivar los campos de entrada mientras la simulación está en curso y volver a activarlos 
+    cuando la simulación finaliza.
+
+    Args:
+        action (str): Estado a aplicar a los campos de entrada. Puede ser 'normal' para habilitarlos o 'disabled' 
+        para deshabilitarlos.
+    """
+    
     for widget in marco_constantes.winfo_children():
         if isinstance(widget, tk.Entry):
             widget.config(state=action)
@@ -183,6 +291,16 @@ def habilitar_deshabilitar_entradas(action):
             widget.config(state=action)
 
 def procesar_informacion():
+    """
+    Procesa la información ingresada en la interfaz y realiza la simulación.
+
+    Obtiene los valores de las constantes y las coordenadas iniciales de los puntos
+    desde las entradas de la interfaz para calcular las trayectorias de
+    los puntos a lo largo del tiempo.
+
+    Los resultados de la simulación se muestran en un gráfico 3D en la interfaz.
+    """
+    
     # Deshabilitar los widgets de entrada
     habilitar_deshabilitar_entradas('disabled')
 
@@ -201,6 +319,14 @@ def procesar_informacion():
         boton_simular.config(text="Iniciar simulación", state=tk.NORMAL)
 
 def simular():
+    """
+    Dibuja la trayectoria de los puntos en el gráfico 3D.
+    Anima el tiempo transcurrido en la simulación y actualiza la etiqueta correspondiente.
+
+    La animación se ejecuta en un bucle que se detiene cuando se alcanza el tiempo
+    máximo de simulación o se detiene manualmente por el usuario.
+    """
+    
     # Variables globales
     global trayectoria1, punto1, trayectoria2, punto2, x1, y1, z1, x2, y2, z2
     global animacion, canvas_figura, paso
@@ -294,6 +420,12 @@ def simular():
     return True
 
 def parar():
+    """
+    Detiene la simulación y reinicia la interfaz.
+
+    La función reinicia los valores de la interfaz y habilita los botones de simulación.
+    """
+    
     global animacion
     if animacion is not None:
         animacion.event_source.stop()
@@ -303,6 +435,13 @@ def parar():
     boton_parar.config(state=tk.DISABLED)
 
 def on_closing():
+    """
+    Cierra la ventana principal cuando el usuario selecciona la opción de cerrar.
+
+    Esta función se utiliza para asegurarse de que todos los procesos se detengan
+    correctamente antes de cerrar la aplicación.
+    """
+    
     os.kill(os.getpid(), signal.SIGTERM)
 
 # Llamar a la función para simular
