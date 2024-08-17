@@ -109,4 +109,4 @@ Esta función inicia la simulación del vuelo del dron.
 ## Requisitos del Sistema
 
 - Python 3.x
-- Bibliotecas adicionales: tkinter, matplotlib, numpy, scipy
+- Bibliotecas adicionales: tkinter, matplotlib, numpy
