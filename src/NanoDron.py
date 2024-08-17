@@ -151,6 +151,11 @@ def dxdt(x, y, alpha):
     Returns:
         float: Valor de la derivada dx/dt.
     """
+    # Verificar y limitar x
+    x = verificar_limitar(x)
+
+    # Verificar y limitar y
+    y = verificar_limitar(y)
     
     result = alpha * (y - x)
     if not np.isfinite(result):
@@ -169,7 +174,15 @@ def dydt(x, y, z, beta):
     Returns:
         float: Valor de la derivada dy/dt.
     """
-    
+    # Verificar y limitar x
+    x = verificar_limitar(x)
+
+    # Verificar y limitar y
+    y = verificar_limitar(y)
+
+    # Verificar y limitar z
+    z = verificar_limitar(z)
+
     result = (x * (beta - z)) - y
     if not np.isfinite(result):
         result = np.clip(result, -1e308, 1e308)  # Limitar a un rango finito
@@ -187,6 +200,14 @@ def dzdt(x, y, z, gamma):
     Returns:
         float: Valor de la derivada dz/dt.
     """
+    # Verificar y limitar x
+    x = verificar_limitar(x)
+
+    # Verificar y limitar y
+    y = verificar_limitar(y)
+
+    # Verificar y limitar z
+    z = verificar_limitar(z)
     
     result = x * y - gamma * z
     if not np.isfinite(result):
@@ -443,6 +464,23 @@ def on_closing():
     """
     
     os.kill(os.getpid(), signal.SIGTERM)
+
+def verificar_limitar(valor):
+    """
+    Verifica si un valor es infinito o fuera de rango y lo limita si es necesario.
+
+    Args:
+        valor (float): Valor a verificar y limitar.
+    
+    Returns:
+        float: Valor limitado si es necesario.
+    """   
+    if not np.isfinite(valor):
+        valor = np.clip(valor, -1e308, 1e308)
+    elif abs(valor) > 1e150:  # Limitar a un rango manejable
+        valor = np.clip(valor, -1e150, 1e150)
+    
+    return valor
 
 # Llamar a la función para simular
 simulador()
