@@ -6,20 +6,16 @@ Este proyecto forma parte de la asignatura de Métodos Numéricos y tiene como o
 
 El programa permite simular el movimiento de un nanodron según las siguientes ecuaciones de movimiento:
 
-\[
-\frac {\delta x} {\delta t} = \alpha (y - x)
-\]
-\[
-\frac {\delta y} {\delta t} = x(\beta - z)- y
-\]
-\[
-\frac {\delta z} {\delta t} = x y - \gamma z
-\]
+$\frac {\delta x} {\delta t} = \alpha (y - x)$
+
+$\frac {\delta y} {\delta t} = x(\beta - z)- y$
+
+$\frac {\delta z} {\delta t} = x y - \gamma z$
 
 Donde:
-- \(x, y, z\) son las coordenadas del nanodron en el espacio.
-- \(\alpha, \beta, \gamma\) son constantes positivas.
-- \(t\) es el tiempo.
+- $x$, $y$, $z$ son las coordenadas del nanodron en el espacio.
+- $\alpha$, $\beta$, $\gamma$ son constantes positivas.
+- $t$ es el tiempo.
 
 ## Instalación
 
@@ -67,17 +63,17 @@ Donde:
 ## Ejemplo
 
 Para el caso 1:
-- \(\alpha = 0.1\)
-- \(\beta = 0.1\)
-- \(\gamma = 0.1\)
-- Coordenadas iniciales: \(x = 1\), \(y = 1\), \(z = 1\)
+- $\alpha = 0.1$
+- $\beta = 0.1$
+- $\gamma = 0.1$
+- Coordenadas iniciales: $x = 1$, $y = 1$, $z = 1$
 - Tiempo de simulación: 10 segundos
 
 Para el caso 2:
-- \(\alpha = 10\)
-- \(\beta = 28\)
-- \(\gamma = 8/3\)
-- Coordenadas iniciales: \(x = 1\), \(y = 1\), \(z = 1\)
+- $\alpha = 10$
+- $\beta = 28$
+- $\gamma = 8/3$
+- Coordenadas iniciales: $x = 1$, $y = 1$, $z = 1$
 - Tiempo de simulación: 10 segundos
 
 ### Documentación del Código
