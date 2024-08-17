@@ -56,7 +56,7 @@ Donde:
     python main.py
     ```
 
-2. **Ingresa los valores de \(\alpha\), \(\beta\), \(\gamma\), las coordenadas iniciales \(x, y, z\), y el tiempo de simulación cuando se te solicite.**
+2. **Ingresa los valores de $\alpha$, $\beta$, $\gamma$, las coordenadas iniciales $x, y, z$, y el tiempo de simulación cuando se te solicite.**
 
 3. **Visualiza la trayectoria del nanodron en la gráfica generada.**
 
